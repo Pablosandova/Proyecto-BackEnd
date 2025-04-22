@@ -1,45 +1,87 @@
 <?php
-require_once '../Modelos/servicios.php';
+require_once './Modelos/Servicios.php';
 
 class ServiciosController {
-    private $serviciosModel;
+    private $db;
 
-    public function __construct($conexion) {
-        $this->serviciosModel = new Servicios($conexion);
+    public function __construct($db) {
+        $this->db = $db;
     }
 
-    public function obtenerTodos() {
-        try {
-            $servicios = $this->serviciosModel->obtenerTodos();
-            echo json_encode($servicios);
-        } catch (Exception $e) {
-            echo json_encode(['error' => $e->getMessage()]);
+    public function listar() {
+        $servicios = new Servicios($this->db);
+        echo json_encode($servicios->obtenerTodos());
+    }
+
+    public function crear() {
+        $servicios = new Servicios($this->db);
+        $data = json_decode(file_get_contents("php://input"), true);
+
+        if (isset($data['Nombre'], $data['Costo'], $data['Duracion'], $data['Descripcion'], $data['Tipo'], $data['Min_integrantes'], $data['Max_integrantes'])) {
+            $query = "INSERT INTO Servicios (Nombre, Costo, Duracion, Descripcion, Tipo, `Min integrantes`, `Max integrantes`) 
+                      VALUES (:Nombre, :Costo, :Duracion, :Descripcion, :Tipo, :Min_integrantes, :Max_integrantes)";
+            $stmt = $servicios->db->prepare($query);
+            $stmt->bindParam(':Nombre', $data['Nombre']);
+            $stmt->bindParam(':Costo', $data['Costo']);
+            $stmt->bindParam(':Duracion', $data['Duracion']);
+            $stmt->bindParam(':Descripcion', $data['Descripcion']);
+            $stmt->bindParam(':Tipo', $data['Tipo']);
+            $stmt->bindParam(':Min_integrantes', $data['Min_integrantes']);
+            $stmt->bindParam(':Max_integrantes', $data['Max_integrantes']);
+
+            if ($stmt->execute()) {
+                echo json_encode(['message' => 'Servicio creado exitosamente']);
+            } else {
+                echo json_encode(['error' => 'Error al crear el servicio']);
+            }
+        } else {
+            echo json_encode(['error' => 'Datos incompletos']);
         }
     }
 
-    public function obtenerPorId($id) {
-        try {
-            $servicio = $this->serviciosModel->obtenerPorId($id);
-            if ($servicio) {
-                echo json_encode($servicio);
+    public function actualizar() {
+        $servicios = new Servicios($this->db);
+        $data = json_decode(file_get_contents("php://input"), true);
+
+        if (isset($data['id'], $data['Nombre'], $data['Costo'], $data['Duracion'], $data['Descripcion'], $data['Tipo'], $data['Min_integrantes'], $data['Max_integrantes'])) {
+            $query = "UPDATE Servicios SET Nombre = :Nombre, Costo = :Costo, Duracion = :Duracion, Descripcion = :Descripcion, 
+                      Tipo = :Tipo, `Min integrantes` = :Min_integrantes, `Max integrantes` = :Max_integrantes WHERE id = :id";
+            $stmt = $servicios->db->prepare($query);
+            $stmt->bindParam(':id', $data['id']);
+            $stmt->bindParam(':Nombre', $data['Nombre']);
+            $stmt->bindParam(':Costo', $data['Costo']);
+            $stmt->bindParam(':Duracion', $data['Duracion']);
+            $stmt->bindParam(':Descripcion', $data['Descripcion']);
+            $stmt->bindParam(':Tipo', $data['Tipo']);
+            $stmt->bindParam(':Min_integrantes', $data['Min_integrantes']);
+            $stmt->bindParam(':Max_integrantes', $data['Max_integrantes']);
+
+            if ($stmt->execute()) {
+                echo json_encode(['message' => 'Servicio actualizado exitosamente']);
             } else {
-                echo json_encode(['error' => 'Servicio no encontrado']);
+                echo json_encode(['error' => 'Error al actualizar el servicio']);
             }
-        } catch (Exception $e) {
-            echo json_encode(['error' => $e->getMessage()]);
+        } else {
+            echo json_encode(['error' => 'Datos incompletos']);
         }
     }
 
-    public function crear($nombre, $costo, $duracion, $descripcion, $tipo, $minIntegrantes, $maxIntegrantes) {
-        try {
-            $resultado = $this->serviciosModel->crear($nombre, $costo, $duracion, $descripcion, $tipo, $minIntegrantes, $maxIntegrantes);
-            if ($resultado) {
-                echo json_encode(['mensaje' => 'Servicio creado correctamente']);
+    public function eliminar() {
+        $data = json_decode(file_get_contents("php://input"), true);
+        $servicios = new Servicios($this->db);
+
+        if (isset($data['id'])) {
+            $query = "DELETE FROM Servicios WHERE id = :id";
+            $stmt = $servicios->db->prepare($query);
+            $stmt->bindParam(':id', $data['id']);
+
+            if ($stmt->execute()) {
+                echo json_encode(['message' => 'Servicio eliminado exitosamente']);
             } else {
-                echo json_encode(['error' => 'No se pudo crear el servicio']);
+                echo json_encode(['error' => 'Error al eliminar el servicio']);
             }
-        } catch (Exception $e) {
-            echo json_encode(['error' => $e->getMessage()]);
+        } else {
+            echo json_encode(['error' => 'ID no proporcionado']);
         }
     }
 }
